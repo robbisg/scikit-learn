@@ -162,7 +162,7 @@ def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv=None,
                 This is available only if ``return_estimator`` parameter
                 is set to ``True``.
             ``splits``
-                The indices of the cv split.
+                The indices of the cv split separated in train and test.
                 This is available only if ``return_splits`` parameter
                 is set to ``True``.                
 
@@ -471,6 +471,9 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     estimator : estimator object
         The fitted estimator
+        
+    splits : dictionary
+        The indices of samples used for training and testing.
     """
     if verbose > 1:
         if parameters is None:
