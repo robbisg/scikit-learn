@@ -40,7 +40,7 @@ __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
 def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv=None,
                    n_jobs=1, verbose=0, fit_params=None,
                    pre_dispatch='2*n_jobs', return_train_score="warn",
-                   return_estimator=False):
+                   return_estimator=False, return_splits=False):
     """Evaluate metric(s) by cross-validation and also record fit/score times.
 
     Read more in the :ref:`User Guide <multimetric_cross_validation>`.
@@ -132,6 +132,9 @@ def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv=None,
 
     return_estimator : boolean, default False
         Whether to return the estimators fitted on each split.
+        
+    return_splits : boolean, default False
+        Whether to return the estimators cross-validation indices.
 
     Returns
     -------
@@ -158,6 +161,10 @@ def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv=None,
                 The estimator objects for each cv split.
                 This is available only if ``return_estimator`` parameter
                 is set to ``True``.
+            ``splits``
+                The indices of the cv split.
+                This is available only if ``return_splits`` parameter
+                is set to ``True``.                
 
     Examples
     --------
@@ -215,13 +222,16 @@ def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv=None,
         delayed(_fit_and_score)(
             clone(estimator), X, y, scorers, train, test, verbose, None,
             fit_params, return_train_score=return_train_score,
-            return_times=True, return_estimator=return_estimator)
+            return_times=True, return_estimator=return_estimator, return_splits=return_splits)
         for train, test in cv.split(X, y, groups))
 
     zipped_scores = list(zip(*scores))
     if return_train_score:
         train_scores = zipped_scores.pop(0)
         train_scores = _aggregate_score_dicts(train_scores)
+    if return_splits:
+        split_indices = zipped_scores.pop()
+    
     if return_estimator:
         fitted_estimators = zipped_scores.pop()
     test_scores, fit_times, score_times = zipped_scores
@@ -231,7 +241,11 @@ def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv=None,
     ret = DeprecationDict() if return_train_score == 'warn' else {}
     ret['fit_time'] = np.array(fit_times)
     ret['score_time'] = np.array(score_times)
-
+    
+    
+    if return_splits:
+        ret['splits'] = split_indices
+    
     if return_estimator:
         ret['estimator'] = fitted_estimators
 
@@ -368,7 +382,7 @@ def cross_val_score(estimator, X, y=None, groups=None, scoring=None, cv=None,
 def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                    parameters, fit_params, return_train_score=False,
                    return_parameters=False, return_n_test_samples=False,
-                   return_times=False, return_estimator=False,
+                   return_times=False, return_estimator=False, return_splits=False,
                    error_score='raise-deprecating'):
     """Fit estimator and compute scores for a given dataset split.
 
@@ -430,6 +444,9 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     return_estimator : boolean, optional, default: False
         Whether to return the fitted estimator.
+        
+    return_splits : boolean, optional, default: False
+        Whether to return the cross-validation split indices.
 
     Returns
     -------
@@ -551,6 +568,9 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
         ret.append(parameters)
     if return_estimator:
         ret.append(estimator)
+        
+    if return_splits:
+        ret.append({'train':train, 'test':test})
     return ret
 
 
