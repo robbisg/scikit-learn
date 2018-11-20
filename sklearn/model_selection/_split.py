@@ -2013,7 +2013,6 @@ class _CVIterableWrapper(BaseCrossValidator):
             yield train, test
 
 
-
 class DoubleGroupCrossValidator(BaseCrossValidator):
     """[summary]
     
@@ -2034,7 +2033,9 @@ class DoubleGroupCrossValidator(BaseCrossValidator):
     [type]
         [description]
     """
-
+    def __init__(self, cv_test=LeaveOneGroupOut()):
+        self.cv_test = cv_test
+        return BaseCrossValidator.__init__(self)
 
 
     def _iter_test_masks(self, X=None, y=None, groups=None):
@@ -2078,22 +2079,31 @@ class DoubleGroupCrossValidator(BaseCrossValidator):
         
         train_group, test_group = groups.T
 
+        cv_train = StratifiedShuffleSplit(n_splits=1, test_size=2)
+
         for train_g in np.unique(train_group):
             train_mask = train_group == train_g
+            """
+            generator = cv_train.split(X[train_mask],
+                                       y[train_mask],
+                                       groups=train_group[train_mask])
+
+            train_idx, test_idx = generator.__next__()
+            """
+            #train_index = indices[train_mask][train_idx]
             train_index = indices[train_mask]
             test_mask = np.logical_not(train_mask)
 
             rest_test = test_group[test_mask]
 
-            for test_g in np.unique(rest_test):
-
-                rest_mask = np.logical_and(test_mask, test_group == test_g)
-                test_index = indices[rest_mask]
-
+            for _, test_index in self.cv_test.split(X[test_mask],
+                                                    y[test_mask],
+                                                    test_group[test_mask]):
+                test_index = indices[test_mask][test_index]
                 yield train_index, test_index
 
 
-    def get_n_splits(self, X = None, y = None, groups = None):
+    def get_n_splits(self, X=None, y=None, groups=None):
         _, test_group = groups
         
         return len(np.unique(test_group))
