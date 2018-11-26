@@ -807,6 +807,7 @@ def cross_val_predict(estimator, X, y=None, groups=None, cv='warn',
         for train, test in cv.split(X, y, groups))
 
     # Concatenate the predictions
+    predictions = [pred_block_i for pred_block_i, _ in prediction_blocks]
     test_indices = np.concatenate([indices_i
                                    for _, indices_i in prediction_blocks])
 
