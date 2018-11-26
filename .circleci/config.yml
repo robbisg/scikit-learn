@@ -1,6 +1,7 @@
 version: 2
 
 jobs:
+  
   python3:
     docker:
       - image: circleci/python:3.6.1
@@ -78,9 +79,6 @@ jobs:
           command: ./build_tools/circle/flake8_diff.sh
 
   pypy3:
-    branches:
-      only:
-        - group_cv
     docker:
       - image: pypy:3-6.0.0
     steps:
@@ -124,7 +122,7 @@ workflows:
           filters:
             branches:
               only:
-                - 0.20.X
+                - group_cv
       - deploy:
           requires:
             - python3
