@@ -78,6 +78,9 @@ jobs:
           command: ./build_tools/circle/flake8_diff.sh
 
   pypy3:
+    branches:
+      only:
+        - group_cv
     docker:
       - image: pypy:3-6.0.0
     steps:
