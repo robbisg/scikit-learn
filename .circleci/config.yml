@@ -127,12 +127,5 @@ workflows:
           requires:
             - python3
   pypy:
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - master
     jobs:
       - pypy3
