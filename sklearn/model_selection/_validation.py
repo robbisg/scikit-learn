@@ -37,12 +37,12 @@ __all__ = ['cross_validate', 'cross_val_score', 'cross_val_predict',
            'permutation_test_score', 'learning_curve', 'validation_curve']
 
 
-def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv=None,
-                   n_jobs=1, verbose=0, fit_params=None,
-                   pre_dispatch='2*n_jobs', return_train_score="warn",
+def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv='warn',
+                   n_jobs=None, verbose=0, fit_params=None,
+                   pre_dispatch='2*n_jobs', return_train_score=False,
                    return_estimator=False, return_splits=False,
-                   return_predictions=False, error_score='raise-deprecating'):
-                   
+                   return_predictions=False, return_decisions=False,
+                   error_score='raise-deprecating'):           
     """Evaluate metric(s) by cross-validation and also record fit/score times.
 
     Read more in the :ref:`User Guide <multimetric_cross_validation>`.
@@ -241,20 +241,24 @@ def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv=None,
     # independent, and that it is pickle-able.
     parallel = Parallel(n_jobs=n_jobs, verbose=verbose,
                         pre_dispatch=pre_dispatch)
-    scores = parallel(
-        delayed(_fit_and_score)(
-            clone(estimator), X, y, scorers, train, test, verbose, None,
-            fit_params, return_train_score=return_train_score,
-            return_times=True, return_estimator=return_estimator, 
-            return_splits=return_splits, return_predictions=return_predictions,
-            error_score=error_score)
+    with parallel:
+        scores = parallel(
+            delayed(_fit_and_score)(
+                clone(estimator), X, y, scorers, train, test, verbose, None,
+                fit_params, return_train_score=return_train_score,
+                return_times=True, return_estimator=return_estimator, 
+                return_splits=return_splits, return_predictions=return_predictions,
+                return_decisions=return_decisions, error_score=error_score)
 
-        for train, test in cv.split(X, y, groups))
-
+            for train, test in cv.split(X, y, groups))
+    
     zipped_scores = list(zip(*scores))
+
     if return_train_score:
         train_scores = zipped_scores.pop(0)
         train_scores = _aggregate_score_dicts(train_scores)
+    if return_decisions:
+        decisions = zipped_scores.pop()
     if return_predictions:
         predictions = zipped_scores.pop()
     if return_splits:
@@ -277,6 +281,9 @@ def cross_validate(estimator, X, y=None, groups=None, scoring=None, cv=None,
     
     if return_predictions:
         ret['predictions'] = predictions
+
+    if return_decisions:
+        ret['decisions'] = decisions
 
     for name in scorers:
         ret['test_%s' % name] = np.array(test_scores[name])
@@ -420,7 +427,8 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                    parameters, fit_params, return_train_score=False,
                    return_parameters=False, return_n_test_samples=False,
                    return_times=False, return_estimator=False, return_splits=False,
-                   return_predictions=False, error_score='raise-deprecating'):
+                   return_predictions=False, return_decisions=False,
+                   error_score='raise-deprecating'):
     """Fit estimator and compute scores for a given dataset split.
 
     Parameters
@@ -487,6 +495,12 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
         
     return_splits : boolean, optional, default: False
         Whether to return the cross-validation split indices.
+    
+    return_predictions : boolean, optional, default: False
+        Whether to return the cross-validation predictions.
+    
+    return_decisions : boolean, optional, default: False
+        Whether to return the cross-validation model output.
 
     Returns
     -------
@@ -620,6 +634,11 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
         predictions = estimator.predict(X_test)
         ret.append(predictions)
 
+    if return_decisions:
+        decisions = estimator.decision_function(X_test)
+        ret.append(decisions)
+    
+    
     return ret
 
 
@@ -671,12 +690,13 @@ def _multimetric_score(estimator, X_test, y_test, scorers):
                 # non-scalar?
                 pass
         scores[name] = score
-        """
+        
         if not isinstance(score, numbers.Number):
-            raise ValueError("scoring must return a number, got %s (%s) "
-                             "instead. (scorer=%s)"
-                             % (str(score), type(score), name))
-        """
+            if not isinstance(score, np.ndarray):
+                raise ValueError("scoring must return a number, got %s (%s) "
+                                "instead. (scorer=%s)"
+                                % (str(score), type(score), name))
+        
     return scores
 
 
