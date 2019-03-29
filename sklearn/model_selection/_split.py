@@ -2079,18 +2079,9 @@ class DoubleGroupCrossValidator(BaseCrossValidator):
         
         train_group, test_group = groups.T
 
-        cv_train = StratifiedShuffleSplit(n_splits=1, test_size=2)
-
         for train_g in np.unique(train_group):
             train_mask = train_group == train_g
-            """
-            generator = cv_train.split(X[train_mask],
-                                       y[train_mask],
-                                       groups=train_group[train_mask])
 
-            train_idx, test_idx = generator.__next__()
-            """
-            #train_index = indices[train_mask][train_idx]
             train_index = indices[train_mask]
             test_mask = np.logical_not(train_mask)
 
@@ -2110,7 +2101,7 @@ class DoubleGroupCrossValidator(BaseCrossValidator):
 
 
 
-def check_cv(cv=3, y=None, classifier=False):
+def check_cv(cv="warn", y=None, classifier=False):
     """Input checker utility for building a cross-validator
 
     Parameters

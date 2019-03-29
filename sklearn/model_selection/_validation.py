@@ -620,10 +620,13 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     if return_n_test_samples:
         ret.append(_num_samples(X_test))
+    
     if return_times:
         ret.extend([fit_time, score_time])
+    
     if return_parameters:
         ret.append(parameters)
+    
     if return_estimator:
         ret.append(estimator)
     
