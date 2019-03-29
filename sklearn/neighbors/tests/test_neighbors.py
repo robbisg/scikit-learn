@@ -17,7 +17,6 @@ from sklearn.neighbors.base import VALID_METRICS_SPARSE, VALID_METRICS
 from sklearn.utils.testing import assert_array_almost_equal
 from sklearn.utils.testing import assert_array_equal
 from sklearn.utils.testing import assert_equal
-from sklearn.utils.testing import assert_false
 from sklearn.utils.testing import assert_greater
 from sklearn.utils.testing import assert_in
 from sklearn.utils.testing import assert_raises
@@ -192,7 +191,7 @@ def test_precomputed(random_state=42):
         assert_array_almost_equal(pred_X, pred_D)
 
 
-@pytest.mark.filterwarnings('ignore: You should specify a value')  # 0.22
+@pytest.mark.filterwarnings('ignore: The default value of cv')  # 0.22
 def test_precomputed_cross_validation():
     # Ensure array is split correctly
     rng = np.random.RandomState(0)
@@ -826,8 +825,8 @@ def test_neighbors_digits():
 
     clf = neighbors.KNeighborsClassifier(n_neighbors=1, algorithm='brute')
     score_uint8 = clf.fit(X_train, Y_train).score(X_test, Y_test)
-    score_float = clf.fit(X_train.astype(float), Y_train).score(
-        X_test.astype(float), Y_test)
+    score_float = clf.fit(X_train.astype(float, copy=False), Y_train).score(
+        X_test.astype(float, copy=False), Y_test)
     assert_equal(score_uint8, score_float)
 
 
@@ -1053,7 +1052,7 @@ def test_valid_brute_metric_for_auto_algorithm():
     # check that there is a metric that is valid for brute
     # but not ball_tree (so we actually test something)
     assert_in("cosine", VALID_METRICS['brute'])
-    assert_false("cosine" in VALID_METRICS['ball_tree'])
+    assert "cosine" not in VALID_METRICS['ball_tree']
 
     # Metric which don't required any additional parameter
     require_params = ['mahalanobis', 'wminkowski', 'seuclidean']
